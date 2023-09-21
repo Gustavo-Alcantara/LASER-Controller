@@ -20,7 +20,10 @@
 #define DRAW_COLOR 0x0000
 
 LCDWIKI_KBV lcd = LCDWIKI_KBV(ILI9488, A3, A2, A1, A0, A4);
-float lastTheta = 0;
+float lastCurrentValue = 0;
+float lastTemperatureValue = 0;
+
+
 void initDisplay(){
     lcd.Init_LCD();
     lcd.Set_Rotation(3);
@@ -45,10 +48,16 @@ void drawText(int16_t x0, int16_t y0, String text, uint16_t color, uint8_t font)
 }
 void drawInterface(){
   drawDiodeSelector();
-  if(currentState != System::DiodeSelecting){
+  if(lastCurrentValue != currentValue){
     drawIndicator(2.7 * SCREEN_WIDTH / 8, SCREEN_MARGINS , TEXT_COLOR,"Current", currentValue, selectedDiode.getMinCurrentValue(), selectedDiode.getMaxCurrentValue());
-    drawIndicator(5.2 * SCREEN_WIDTH / 8, SCREEN_MARGINS , TEXT_COLOR,"Temperature", tempValue, selectedDiode.getMinTempValue(), selectedDiode.getMaxTempValue());
+    lastCurrentValue = currentValue;
   }
+  else if(lastTemperatureValue != tempValue){
+    drawIndicator(5.2 * SCREEN_WIDTH / 8, SCREEN_MARGINS , TEXT_COLOR,"Temperature", tempValue, selectedDiode.getMinTempValue(), selectedDiode.getMaxTempValue());
+    lastTemperatureValue = tempValue;
+  }
+  drawText(25, SCREEN_HEIGHT - MEDIUM_TEXT_FONT_HEIGHT - SCREEN_MARGINS,  "Current:" + String(currentMeasure), TEXT_COLOR, MEDIUM_TEXT_FONT);
+  drawText(175, SCREEN_HEIGHT - MEDIUM_TEXT_FONT_HEIGHT - SCREEN_MARGINS,  "Temperature:" + String(temperatureMeasure), TEXT_COLOR, MEDIUM_TEXT_FONT);
 }
 void drawDiodeSelector(){
   int16_t x0 = (SCREEN_MARGINS * 1.5) + (MEDIUM_TEXT_FONT_HEIGHT / 2);
@@ -96,16 +105,24 @@ void drawIndicator(int16_t x0, int16_t y0, uint16_t color, String title, int16_t
   int16_t x1 = x0 + r;
   int16_t y1 = y0 + 2*SCREEN_MARGINS+r;
   float theta = (value-minv)/(maxv-minv)*PI;
+  r = (3 * SCREEN_WIDTH / 16) - (SCREEN_MARGINS * 4);
 
-  lcd.Set_Draw_color(0xFFFF);
-  lcd.Fill_Circle(x1, y1, r-SCREEN_MARGINS);
+  if(title == "Current"){
+    float ltheta = (lastCurrentValue-minv)/(maxv-minv)*PI;
+    lcd.Set_Draw_color(0xFFFF);
+    lcd.Draw_Line(x1, y1, x1+r*cos(ltheta+PI), y1+r*sin(ltheta+PI));
+  }
+  else{
+    float ltheta = (lastTemperatureValue-minv)/(maxv-minv)*PI;
+    lcd.Set_Draw_color(0xFFFF);
+    lcd.Draw_Line(x1, y1, x1+r*cos(ltheta+PI), y1+r*sin(ltheta+PI));
+  }
   lcd.Set_Draw_color(DRAW_COLOR);
-  lcd.Draw_Line(x1, y1, x1+r*cos(-theta), y1+r*sin(-theta));
-  lastTheta = theta;
+  lcd.Draw_Line(x1, y1, x1+r*cos(theta+PI), y1+r*sin(theta+PI));
 
   if(currentState != System::DiodeSelecting){
     if(title == "Current")
-      drawText(x0, y1 + r+2*SCREEN_MARGINS, String(currentValue), TEXT_COLOR, MEDIUM_TEXT_FONT);
+      drawText(x0, y1 + r+2*SCREEN_MARGINS,String(currentValue), TEXT_COLOR, MEDIUM_TEXT_FONT);
     else
       drawText(x0, y1 + r+2*SCREEN_MARGINS, String(tempValue), TEXT_COLOR, MEDIUM_TEXT_FONT);
   }

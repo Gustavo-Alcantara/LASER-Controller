@@ -17,6 +17,8 @@ int16_t value;
 int16_t last;
 float currentValue = 0;
 float tempValue = 0;
+int16_t currentMeasure = 0;
+int16_t temperatureMeasure = 0;
 
 Diodo diodoList[] = {
   Diodo("L785P090", 165.0, 0.0, 70.0, -10.0, 125.0, 23.0),
@@ -33,9 +35,7 @@ void setup() {
 
   encoder = new ClickEncoder(12, 13, 11); //DT,CLK,SW
   Timer1.initialize(1000);
-  Timer1.attachInterrupt(timerIsr);
-  Timer1.attachInterrupt(controlLoop)
-
+  Timer1.attachInterrupt(measureTest);
   last=-1;
 }
 
@@ -63,9 +63,6 @@ void loop() {
   }
   drawInterface();
 }
-void timerIsr() {
-  encoder->service();
-}
 void diodeSelecting(){
   value += encoder->getValue();
   if (value != last) {
@@ -81,6 +78,7 @@ void diodeSelecting(){
     lasersystem.setState(System::CurrentCoarseSetting);
     selectedDiode = diodoList[value];
     value = 0;
+    tempValue = selectedDiode.getMinTempValue();
   }
 }
 void currentCoarseSetting(){
@@ -119,11 +117,11 @@ void currentFineSetting(){
   ClickEncoder::Button_e buttonState = encoder->getButton();
   if(buttonState != ClickEncoder::Open){
     lasersystem.setState(System::TempCoarseSetting);
+    value = 0;
   }
 }
 void tempCoarseSetting(){
-  value += encoder->getValue();
-  tempValue = selectedDiode.getMinTempValue();
+  value += 3*encoder->getValue();
   tempValue = map(value,1,100, selectedDiode.getMinTempValue(), selectedDiode.getMaxTempValue());
   if(tempValue >= selectedDiode.getMaxTempValue()){
     tempValue = selectedDiode.getMaxTempValue();
