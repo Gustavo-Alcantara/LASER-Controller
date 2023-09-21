@@ -16,7 +16,7 @@ System::State currentState;
 int16_t value;
 int16_t last;
 float currentValue = 0;
-float tempValue = 10;
+float tempValue = 0;
 
 Diodo diodoList[] = {
   Diodo("L785P090", 165.0, 0.0, 70.0, -10.0, 125.0, 23.0),
@@ -34,6 +34,7 @@ void setup() {
   encoder = new ClickEncoder(12, 13, 11); //DT,CLK,SW
   Timer1.initialize(1000);
   Timer1.attachInterrupt(timerIsr);
+  Timer1.attachInterrupt(controlLoop)
 
   last=-1;
 }
@@ -43,6 +44,7 @@ void loop() {
   currentState = lasersystem.getState();
 
   switch(currentState){
+
     case System::DiodeSelecting:
       diodeSelecting();
       break;
@@ -72,19 +74,17 @@ void diodeSelecting(){
       value =0;
     else if(value < 0)
       value = 3;
-    Serial.println(diodoList[value].getName());
     selectedDiode = diodoList[value];
   }
   ClickEncoder::Button_e buttonState = encoder->getButton();
   if(buttonState != ClickEncoder::Open){
-    Serial.print("Diodo selecionado: ");
-    Serial.println(selectedDiode.getName());
     lasersystem.setState(System::CurrentCoarseSetting);
     selectedDiode = diodoList[value];
+    value = 0;
   }
 }
 void currentCoarseSetting(){
-  value += encoder->getValue();
+  value += 3*encoder->getValue();
   currentValue = selectedDiode.getMinCurrentValue();
   currentValue = map(value,1,100, selectedDiode.getMinCurrentValue(), selectedDiode.getMaxCurrentValue());
   if(currentValue >= selectedDiode.getMaxCurrentValue()){
@@ -94,16 +94,13 @@ void currentCoarseSetting(){
     currentValue = selectedDiode.getMinCurrentValue();
   }
   if(value != last){
-    Serial.print("Current = ");
-    Serial.println(currentValue);
     last = value;
   }
   ClickEncoder::Button_e buttonState = encoder->getButton();
   if(buttonState != ClickEncoder::Open){
     currentValue = currentValue;
     lasersystem.setState(System::CurrentFineSetting);
-    Serial.print("Current coarse: ");
-    Serial.println(currentValue);
+
   }
 }
 void currentFineSetting(){
@@ -117,15 +114,11 @@ void currentFineSetting(){
     currentValue = selectedDiode.getMinCurrentValue();
   }
   if(value != last){
-    Serial.print("Current = ");
-    Serial.println(currentValue);
     last = value;
   }
   ClickEncoder::Button_e buttonState = encoder->getButton();
   if(buttonState != ClickEncoder::Open){
     lasersystem.setState(System::TempCoarseSetting);
-    Serial.print("Current: ");
-    Serial.println(currentValue);
   }
 }
 void tempCoarseSetting(){
@@ -139,15 +132,11 @@ void tempCoarseSetting(){
     tempValue = selectedDiode.getMinTempValue();
   }
   if(value != last){
-    Serial.print("Temperature = ");
-    Serial.println(tempValue);
     last = value;
   }
   ClickEncoder::Button_e buttonState = encoder->getButton();
   if(buttonState != ClickEncoder::Open){
     lasersystem.setState(System::TempFineSetting);
-    Serial.print("Temperature coarse: ");
-    Serial.println(tempValue);
   }
 }
 void tempFineSetting(){
@@ -161,14 +150,10 @@ void tempFineSetting(){
     tempValue = selectedDiode.getMinTempValue();
   }
   if(value != last){
-    Serial.print("Temp = ");
-    Serial.println(tempValue);
     last = value;
   }
   ClickEncoder::Button_e buttonState = encoder->getButton();
   if(buttonState != ClickEncoder::Open){
     lasersystem.setState(System::DiodeSelecting);
-    Serial.print("Temp coarse: ");
-    Serial.println(tempValue);
   }
 }
