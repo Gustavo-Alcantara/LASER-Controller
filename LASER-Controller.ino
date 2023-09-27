@@ -2,12 +2,14 @@
 #include <ClickEncoder.h>
 #include <TimerOne.h>
 #include <LCDWIKI_KBV.h>
+#include <Adafruit_MCP4725.h>
 #include "System.h"
 #include "Diode.h"
 
 
 ClickEncoder *encoder; 
-
+Adafruit_MCP4725 Idac;
+Adafruit_MCP4725 Tdac;
 
 System lasersystem = System();
 Diodo selectedDiode = Diodo("L785P090", 165.0, 0.0, 70.0, -10.0, 125.0, 23.0);
@@ -31,11 +33,11 @@ Diodo diodoList[] = {
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  initConverters();
   initDisplay();
-
   encoder = new ClickEncoder(12, 13, 11); //DT,CLK,SW
-  Timer1.initialize(1000);
-  Timer1.attachInterrupt(measureTest);
+  Timer1.initialize(100000);
+  Timer1.attachInterrupt(updateMeasurement);
   last=-1;
 }
 
